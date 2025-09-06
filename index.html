@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AhaFood.AI — WebAR (MindAR + PNG Robot)</title>
+  <!-- A‑Frame & MindAR (Image Tracking) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/mind-ar/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body { margin:0; height:100%; background:#000; }
+    .hud { position: fixed; left: 12px; right: 12px; top: 12px; display:flex; gap:8px; z-index:20; font-family: system-ui, Arial, sans-serif; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px;
+            background: rgba(0,0,0,.55); color:#fff; font-weight:600; border:1px solid rgba(255,255,255,.15); text-decoration:none; backdrop-filter: blur(6px); }
+    #hint { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); color:#fff; background: rgba(0,0,0,.45); padding:8px 12px; border-radius:10px; font-family: system-ui; z-index:20; }
+    #preview { position: fixed; right: 12px; bottom: 12px; max-width: 160px; border-radius: 10px; border:1px solid rgba(255,255,255,.25); display:none; z-index: 30; }
+  </style>
+</head>
+<body>
+  <!-- HUD -->
+  <div class="hud">
+    <button class="pill" id="btnSnap">📸 Chụp hình</button>
+    <a class="pill" id="btnOrder" href="https://www.ahafood.ai/store?utm_source=qr_card&utm_medium=webar&utm_campaign=robot" target="_blank" rel="noopener">🛒 Đặt món</a>
+  </div>
+  <div id="hint">Hướng camera vào <b>tấm card</b> (ảnh mục tiêu) để robot xuất hiện</div>
+  <img id="preview" alt="Ảnh đã chụp" />
+
+  <!-- WebAR Scene (MindAR) -->
+  <a-scene
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: true; uiLoading: true;"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true; antialias: true"
+    embedded
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+  >
+    <a-assets>
+      <img id="robotImg" src="./robot.png" crossorigin="anonymous" />
+    </a-assets>
+
+    <!-- camera with mouse ray for clicks/taps -->
+    <a-camera cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-camera>
+
+    <!-- Anchor: bind all content to the tracked image (targetIndex:0) -->
+    <a-entity id="anchor" mindar-image-target="targetIndex: 0">
+      <!-- Base transparent plane for reference -->
+      <a-plane position="0 0 0" rotation="-90 0 0" width="1" height="1.5" color="#0d4073" opacity="0.06"></a-plane>
+
+      <!-- Robot PNG billboard -->
+      <a-plane id="robot" material="src: #robotImg; transparent: true; alphaTest: 0.05"
+               position="0 0.6 0" width="1.0" height="1.2">
+      </a-plane>
+
+      <!-- CTA header above the robot -->
+      <a-plane position="0 1.3 0" width="1.15" height="0.28" color="#ff7f32">
+        <a-entity position="0 0 0.01" text="value: AhaFood.AI — Chụp hình cùng Robot!; align: center; color: #fff; width: 3.2"></a-entity>
+      </a-plane>
+    </a-entity>
+
+    <!-- Lights -->
+    <a-entity light="type: ambient; intensity: 0.9"></a-entity>
+    <a-entity light="type: directional; intensity: 0.7" position="0 1 1"></a-entity>
+  </a-scene>
+
+  <script>
+    // Toggle hint based on tracking
+    const hint = document.getElementById('hint');
+    const anchor = document.getElementById('anchor');
+    anchor.addEventListener('targetFound', ()=> hint.style.display='none');
+    anchor.addEventListener('targetLost',  ()=> hint.style.display='block');
+
+    // Screenshot
+    const btnSnap = document.getElementById('btnSnap');
+    const preview = document.getElementById('preview');
+    btnSnap.addEventListener('click', ()=>{
+      const scene = document.querySelector('a-scene');
+      if (!scene.components.screenshot) scene.setAttribute('screenshot', 'width: 1920; height: 1080');
+      const data = scene.components.screenshot.capture('perspective');
+      if (data) { preview.src = data; preview.style.display = 'block';
+        const a = document.createElement('a'); a.href = data; a.download = 'AhaFoodAI_AR_Robot.png'; document.body.appendChild(a); a.click(); a.remove(); }
+    });
+  </script>
+</body>
+</html>
